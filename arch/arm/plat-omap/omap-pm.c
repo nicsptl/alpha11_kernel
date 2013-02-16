@@ -602,12 +602,45 @@ void omap_pm_dsp_set_min_opp(u8 opp_id)
 	        mpu_freq_table[mpu_req_id].frequency,
 	        dsp_req_id, mpu_req_id);
 
-	if (dsp_freq_table[dsp_req_id].frequency >
-	        dsp_freq_table[mpu_req_id].frequency) {
-		selopp = dsp_req_id;
-	} else {
-		selopp = mpu_req_id;
-	}
+		if (dsp_freq_table[dsp_req_id].frequency >
+dsp_freq_table[mpu_req_id].frequency) {
+         /*
+* Ensure that this request is not conflicting with cpufreq
+* constraints. If that is the case, cpufreq wins.
+*/
+        struct cpufreq_policy policy;
+        cpufreq_get_policy(&policy, 0);
+
+        if (mpu_freq_table[dsp_req_id].frequency < policy.min) {
+                while (mpu_freq_table[dsp_req_id].frequency < policy.min && dsp_req_id < ft_count) {
+                         dsp_req_id = dsp_req_id + 1;
+                       }
+        } else if (mpu_freq_table[dsp_req_id].frequency > policy.max) {
+                while (mpu_freq_table[dsp_req_id].frequency > policy.max && dsp_req_id > 0) {
+                         dsp_req_id = dsp_req_id - 1;
+                       }
+                }
+        /*
+* cpufreq check end
+*/
+selopp = dsp_req_id;
+} else {
+        /*
+* Ensure that this request is not conflicting with cpufreq
+* constraints. If that is the case, cpufreq wins.
+*/
+        struct cpufreq_policy policy;
+        cpufreq_get_policy(&policy, 0);
+
+        if (mpu_freq_table[mpu_req_id].frequency < policy.min) {
+                while (mpu_freq_table[mpu_req_id].frequency < policy.min && mpu_req_id < ft_count) {
+                        mpu_req_id = mpu_req_id + 1;
+                }
+        } else if (mpu_freq_table[mpu_req_id].frequency > policy.max) {
+                while (mpu_freq_table[mpu_req_id].frequency > policy.max && mpu_req_id > 0) {
+                        mpu_req_id = mpu_req_id - 1;
+                }
+          }
 
 	/* Is a change requested? */
 	if (currspeed == dsp_freq_table[selopp].frequency) {
@@ -850,10 +883,25 @@ int omap_pm_set_min_mpu_freq(struct device *dev, unsigned long f)
 	/* Save the current constraint */
 	old_max_level = mpu_tput->max_level;
 
-	if (f == -1)
-		remove_req_tput(dev, mpu_tput);
-	else
-		add_req_tput(dev, f, mpu_tput);
+		if (f == -1){
+remove_req_tput(dev, mpu_tput);
+} else {
+        struct cpufreq_policy policy;
+
+        cpufreq_get_policy(&policy, 0);
+
+        /*
+* Ensure that this request is not conflicting with cpufreq
+* constraints. If that is the case, cpufreq wins.
+*/
+        if ((f/1000) < policy.min)
+            f = policy.min * 1000;
+        if ((f/1000) > policy.max)
+            f = policy.max * 1000;
+
+
+add_req_tput(dev, f, mpu_tput);
+}
 
 	/* Find max constraint after the operation */
 	max_lookup(mpu_tput);
