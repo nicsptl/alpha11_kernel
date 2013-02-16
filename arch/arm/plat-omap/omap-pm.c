@@ -597,50 +597,47 @@ void omap_pm_dsp_set_min_opp(u8 opp_id)
 	 *
 	 */
 
-	pr_debug("OMAP PM: Requested dfreq/mfreq: %d/%d. didx/midx: %d/%d\n",
-	        dsp_freq_table[dsp_req_id].frequency,
-	        mpu_freq_table[mpu_req_id].frequency,
-	        dsp_req_id, mpu_req_id);
-
-		if (dsp_freq_table[dsp_req_id].frequency >
-dsp_freq_table[mpu_req_id].frequency) {
-         /*
+	if (dsp_req_id > mpu_req_id){
+        /*
 * Ensure that this request is not conflicting with cpufreq
 * constraints. If that is the case, cpufreq wins.
 */
         struct cpufreq_policy policy;
+
         cpufreq_get_policy(&policy, 0);
 
-        if (mpu_freq_table[dsp_req_id].frequency < policy.min) {
-                while (mpu_freq_table[dsp_req_id].frequency < policy.min && dsp_req_id < ft_count) {
-                         dsp_req_id = dsp_req_id + 1;
-                       }
-        } else if (mpu_freq_table[dsp_req_id].frequency > policy.max) {
-                while (mpu_freq_table[dsp_req_id].frequency > policy.max && dsp_req_id > 0) {
-                         dsp_req_id = dsp_req_id - 1;
-                       }
-                }
+        while (mpu_freq_table[dsp_req_id].frequency < policy.min && dsp_req_id < ft_count - 1) {
+        dsp_req_id = dsp_req_id + 1;
+        }
+        while (mpu_freq_table[dsp_req_id].frequency > policy.max && dsp_req_id > 0) {
+        dsp_req_id = dsp_req_id - 1;
+        }
         /*
 * cpufreq check end
 */
+
 selopp = dsp_req_id;
 } else {
-        /*
+/*
 * Ensure that this request is not conflicting with cpufreq
 * constraints. If that is the case, cpufreq wins.
 */
         struct cpufreq_policy policy;
+
         cpufreq_get_policy(&policy, 0);
 
-        if (mpu_freq_table[mpu_req_id].frequency < policy.min) {
-                while (mpu_freq_table[mpu_req_id].frequency < policy.min && mpu_req_id < ft_count) {
-                        mpu_req_id = mpu_req_id + 1;
-                }
-        } else if (mpu_freq_table[mpu_req_id].frequency > policy.max) {
-                while (mpu_freq_table[mpu_req_id].frequency > policy.max && mpu_req_id > 0) {
-                        mpu_req_id = mpu_req_id - 1;
-                }
-          }
+        while (mpu_freq_table[mpu_req_id].frequency < policy.min && mpu_req_id < ft_count - 1) {
+        mpu_req_id = mpu_req_id + 1;
+        }
+        while (mpu_freq_table[mpu_req_id].frequency > policy.max && mpu_req_id > 0) {
+        mpu_req_id = mpu_req_id - 1;
+        }
+        /*
+* cpufreq check end
+*/
+        
+selopp = mpu_req_id;
+}
 
 	/* Is a change requested? */
 	if (currspeed == dsp_freq_table[selopp].frequency) {
@@ -659,11 +656,7 @@ selopp = dsp_req_id;
 	else
 		omap_device_set_rate(iva_dev, iva_dev,
 				dsp_freq_table[selopp].frequency * 1000);
-
-	pr_debug("OMAP PM: Set dfreq/mfreq: %d/%d\n",
-	        dsp_freq_table[selopp].frequency,
-	        mpu_freq_table[selopp].frequency);
-}
+	}
 
 
 u8 omap_pm_dsp_get_opp(void)
