@@ -11,13 +11,13 @@ make latona_galaxysl_defconfig
 nice -n 10 make -j8 modules
 
 # Copy modules
-find -name '*.ko' -exec cp -av {} $CYANOGENMOD/device/samsung/galaxysl/modules/ \;
+find -name '*.ko' -exec cp -av {} /home/nics/CYANOGENMOD/device/samsung/galaxysl/modules/ \;
 
 # Build kernel
 nice -n 10 make -j8 zImage
 
 # Copy kernel
-cp arch/arm/boot/zImage $CYANOGENMOD/device/samsung/galaxysl/kernel
+cp arch/arm/boot/zImage /home/nics/CYANOGENMOD/device/samsung/galaxysl/kernel
 
 # Make mrproper
 make mrproper
